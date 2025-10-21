@@ -9,6 +9,8 @@
 
 #include <Arduino.h>
 
+const int delayBetweenDigits = 2; 
+
 // ----- Segment pin definitions -----
 const int segA = 12; // segment A
 const int segB = 8;  // segment B
@@ -30,7 +32,7 @@ const int digit4 = 5;  // DIGIT 4
 // ----- Time variables -----
 int hours = 21;
 int minutes = 37;
-int seconds = 0;
+int seconds = 55;
 
 unsigned long previousMillis = 0;
 bool colonState = true; // Blinking colon state
@@ -106,7 +108,6 @@ void showDigit(int number, bool dot,  int digitPin) {
   allDigitsOff();         // Disable all digits
   showNumber(number, dot);     // Set segments
   digitalWrite(digitPin, HIGH); // Enable digit (active HIGH)
-  delay(2);               // Small delay for persistence of vision
 }
 
 // Display the time HH:MM with blinking colon
@@ -115,24 +116,35 @@ void displayTime() {
   int d2 = hours % 10;
   int d3 = minutes / 10;
   int d4 = minutes % 10;
-
+  
   showDigit(d1, dotDigit1, digit1);
+  delay(delayBetweenDigits);
+  
   showDigit(d2, dotDigit2, digit2);
+  delay(delayBetweenDigits);
+  
 
   // Colon blink control
+  
   if (colonState) {
+    allDigitsOff();
     digitalWrite(segUC, LOW);     // Colon ON (active LOW)
     digitalWrite(digitUC_LC, HIGH);
-    delay(2);
+  } else {
+    allDigitsOff();
     digitalWrite(digitUC_LC, LOW);
     digitalWrite(segUC, HIGH);    // Turn colon OFF after brief flash
   }
+  delay(delayBetweenDigits);
 
   showDigit(d3, dotDigit3, digit3);
+  delay(delayBetweenDigits);
+
   showDigit(d4, dotDigit4, digit4);
+  delay(delayBetweenDigits);
 }
 
-/*
+
 // ----- Time update -----
 void updateTime() {
   unsigned long currentMillis = millis();
@@ -155,12 +167,14 @@ void updateTime() {
     }
   }
 }
-*/
+
 
 // ----- Main loop -----
 void loop() {
-  // updateTime();
+  updateTime();
   for (int i = 0; i < 50; i++) {
     displayTime();
   }
 }
+
+
