@@ -4,7 +4,7 @@
 * https://veecad.com/downloads.html
 
 
-
+![alt text](image-3.png)
 
 	
 LED4-AF-05643FG-B PBF
@@ -19,6 +19,8 @@ aktywne wszystkie kropki (przy cyfrach i zegarkowe)
 ![alt text](image.png)
 
 ![alt text](image-1.png)
+
+![alt text](image-4.png)
 
 
 typ NPN zacznie przewodzić, gdy do bazy przyłożymy napięcie dodatnie względem emitera, czyli przy standardowym podłączeniu na bazę podamy wysoki potencjał (plus z baterii),

@@ -9,6 +9,17 @@
 
 #include <Arduino.h>
 
+const int button1 = A5;   // pin przycisku
+const int button2 = A4;
+const unsigned long debounceDelay = 50; // czas antydrganiowy (ms)
+
+int button1State;             // aktualny stan
+int button2State;   
+int lastButton1State = LOW;   // poprzedni stan
+int lastButton2State = LOW;   
+unsigned long lastDebounceTime1 = 0; // ostatni czas zmiany
+unsigned long lastDebounceTime2 = 0; // ostatni czas zmiany
+
 const int delayBetweenDigits = 2; 
 
 // ----- Segment pin definitions -----
@@ -30,15 +41,15 @@ const int digitUC_LC = 6; // Colon anode
 const int digit4 = 5;  // DIGIT 4
 
 // ----- Time variables -----
-int hours = 21;
-int minutes = 37;
-int seconds = 55;
+int hours = 0;
+int minutes = 0;
+int seconds = 0;
 
 unsigned long previousMillis = 0;
 bool colonState = true; // Blinking colon state
 bool dotDigit1 = false;
-bool dotDigit2 = true;
-bool dotDigit3 = true;
+bool dotDigit2 = false;
+bool dotDigit3 = false;
 bool dotDigit4 = false;
 
 // ----- Segment patterns for digits 0–9 (active LOW) -----
@@ -57,6 +68,9 @@ const byte digitPatterns[10][7] = {
 
 // ----- Setup -----
 void setup() {
+  pinMode(button1, INPUT);
+  pinMode(button2, INPUT);
+
   // Segment pins
   pinMode(segA, OUTPUT);
   pinMode(segB, OUTPUT);
@@ -76,6 +90,8 @@ void setup() {
   pinMode(digit4, OUTPUT);
 
   allDigitsOff();
+
+  timer2_init();
 }
 
 // ----- Helper functions -----
@@ -147,10 +163,6 @@ void displayTime() {
 
 // ----- Time update -----
 void updateTime() {
-  unsigned long currentMillis = millis();
-
-  if (currentMillis - previousMillis >= 1000) {
-    previousMillis = currentMillis;
     seconds++;
 
     // Blink colon every second
@@ -165,16 +177,114 @@ void updateTime() {
         if (hours >= 24) hours = 0;
       }
     }
-  }
+  
 }
 
 
 // ----- Main loop -----
 void loop() {
-  updateTime();
-  for (int i = 0; i < 50; i++) {
-    displayTime();
+
+
+  handleButton1();
+  handleButton2();
+
+
+  displayTime();
+  
+}
+
+
+
+void handleButton1() {
+  
+  int reading = digitalRead(button1);
+  // jeśli stan się zmienił → zresetuj timer
+  if (reading != lastButton1State) {
+    lastDebounceTime1 = millis();
   }
+
+  // jeśli minął czas stabilizacji
+  if ((millis() - lastDebounceTime1) > debounceDelay) {
+    // jeśli stan jest inny niż ostatnio potwierdzony
+    if (reading != button1State) {
+      button1State = reading;
+
+      if (button1State == HIGH) {
+        button1Pressed();
+      }
+    }
+  }
+
+  lastButton1State = reading;
+}
+
+void handleButton2() {
+  
+  int reading = digitalRead(button2);
+  // jeśli stan się zmienił → zresetuj timer
+  if (reading != lastButton2State) {
+    lastDebounceTime2 = millis();
+  }
+
+  // jeśli minął czas stabilizacji
+  if ((millis() - lastDebounceTime2) > debounceDelay) {
+    // jeśli stan jest inny niż ostatnio potwierdzony
+    if (reading != button2State) {
+      button2State = reading;
+
+      if (button2State == HIGH) {
+        button2Pressed();
+      }
+    }
+  }
+
+  lastButton2State = reading;
+}
+
+void button1Pressed() {
+  if(dotDigit2) {
+    dotDigit2 = false;
+    dotDigit4 = true;
+    return;
+  }
+  if(dotDigit4) {
+    dotDigit4 = false;
+    return;
+  }
+  dotDigit2 = true;
+}
+
+void button2Pressed() {
+  if(dotDigit2) {
+    hours++;
+    if (hours >= 24) hours = 0;
+  }
+
+  if(dotDigit4) {
+    minutes++;
+   if (minutes >= 60) minutes = 0;
+  }
+}
+
+void timer2_init(void) {
+    // Włącz tryb asynchroniczny
+    ASSR = (1 << AS2);
+    
+    // Ustaw preskaler 128
+    TCCR2 = (1 << CS22) | (1 << CS20);
+    
+    // Zeruj licznik
+    TCNT2 = 0;
+
+    // Poczekaj na synchronizację
+    while (ASSR & ((1 << TCN2UB) | (1 << TCR2UB) | (1 << OCR2UB)));
+
+    // Włącz przerwanie od overflow
+    TIMSK |= (1 << TOIE2);
+}
+
+ISR(TIMER2_OVF_vect) {
+    updateTime();
 }
 
 
